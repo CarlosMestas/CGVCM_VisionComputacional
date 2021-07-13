@@ -1,0 +1,159 @@
+#ifndef IMAGE_H
+#define IMAGE_H
+
+#include <vector>
+#include <string>
+
+// Agregamos todo el motor de opencv
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+
+template<typename PixelType>
+
+class Image{
+    // Vector de vectores (no importa el tipo de pixel rgb, etc ...)
+    using DataType = std::vector<std::vector<PixelType>>;
+
+public:
+    Image(){};
+    void read(const std::string& _fileName);
+
+private:
+    // Matriz de pixeles
+    DataType data;
+    // Filas
+    std::size_t rows{};
+    // Columnas
+    std::size_t columns{};
+
+    uint8_t greyImage[0][0];
+
+};
+
+template<typename PixelType>
+void Image<PixelType>::read(const std::string& _fileName){
+    // Lectura de imagen
+    cv::Mat image = cv::imread(_fileName, cv::IMREAD_COLOR);
+    /*
+    // Lectura de imagen en escala de grises
+    cv::Mat image = cv::imread(_fileName, cv::IMREAD_GRAYSCALE);
+    */
+    // Verificamos si la lectura fue correcta
+    if(!image.data){
+        std::cerr<< "No image data" << std::endl;
+        return;
+    }
+
+    rows = image.rows;
+    columns = image.cols;
+
+    // Damos memoria a nuestra matriz
+    data = DataType(rows, std::vector<PixelType>(columns, PixelType{}));
+
+    uchar red, green, blue;
+
+    for(unsigned r = 0; r < rows; ++r){
+        for(unsigned c = 0; c < columns; ++c){
+            red   = image.ptr<cv::Vec3b>(r)[c][2];
+            green = image.ptr<cv::Vec3b>(r)[c][1];
+            blue  = image.ptr<cv::Vec3b>(r)[c][0];
+
+            // Ingresar los valores en la matriz data
+
+            // if en tiempo de compilacion
+            // Comprobacion si es un tipo de dato basico int, float, etc ...
+            if constexpr (std::is_fundamental<PixelType>::value){
+                // Conversion de RGB a grises
+                data[r][c] = static_cast<PixelType>((red + green + blue) / 3);
+            }
+            else{
+                data[r][c][0] = static_cast<typename PixelType::valueType>(red);
+                data[r][c][1] = static_cast<typename PixelType::valueType>(green);
+                data[r][c][2] = static_cast<typename PixelType::valueType>(blue);
+
+            }
+
+        }
+    }
+
+    /*
+    std::cout << image.ptr<cv::Vec3b>(0)[0] << std::endl;
+    std::cout << image.ptr<cv::Vec3b>(0)[1] << std::endl;
+    std::cout << image.ptr<cv::Vec3b>(1)[0] << std::endl;
+    std::cout << image.ptr<cv::Vec3b>(1)[1] << std::endl;
+
+    std::cout << +data[0][0][0] << ", " << +data[0][0][1] << ", " << +data[0][0][2] << std::endl;
+    std::cout << +data[0][1][0] << ", " << +data[0][1][1] << ", " << +data[0][1][2] << std::endl;
+    std::cout << +data[1][0][0] << ", " << +data[1][0][1] << ", " << +data[1][0][2] << std::endl;
+    std::cout << +data[1][1][0] << ", " << +data[1][1][1] << ", " << +data[1][1][2] << std::endl;
+    std::cout << +data[4][9][0] << ", " << +data[4][9][1] << ", " << +data[4][9][2] << std::endl;
+    */
+
+    greyImage.resize(rows);
+
+///    std::cout << "ga" << std::endl;
+    for(int r = 0; r < rows; r++){
+        for(int c = 0; c < columns; c++){
+ //           std::cout << +data[r][c][0] << ", " << +data[r][c][1] << ", " << +data[r][c][2] << std::endl;
+            greyImage[r][c] = (uint8_t)(((static_cast<int>(data[r][c][0])) + (static_cast<int>(data[r][c][1])) + (static_cast<int>(data[r][c][2])))/3);
+//            std::cout << "v " << r << " - " << c << " " << ((static_cast<int>(data[r][c][0])) + (static_cast<int>(data[r][c][1])) + (static_cast<int>(data[r][c][2])))/3 <<std::endl;
+//            std::cout << "gi " << static_cast<int>(greyImage[r][c]) << std::endl;
+        }
+//        std::cout << std::endl;
+    }
+
+    cv::Mat imageData = cv::Mat(rows, columns, CV_8U, &data);
+
+
+
+    cv::Mat greyImg = cv::Mat(rows, columns, CV_8U, &greyImage);
+
+
+
+    std::string greyArrWindow = "Grey Array Image";
+    cv::namedWindow(greyArrWindow, cv::WINDOW_AUTOSIZE);
+    cv::imshow(greyArrWindow, greyImg);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+
+
+    /*
+    cv::namedWindow("Image Data", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Image", imageData);
+    cv::waitKey(0);
+    */
+
+    /*
+    // Construct from and array
+       uint8_t greyArr[11][11] = {
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 },
+           { 0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 255 }
+       };
+
+       cv::Mat greyImg = cv::Mat(rows, columns, CV_8U, &data[0]);
+       std::string greyArrWindow = "Grey Array Image";
+       cv::namedWindow(greyArrWindow, cv::WINDOW_AUTOSIZE);
+       cv::imshow(greyArrWindow, greyImg);
+       cv::waitKey(0);
+       cv::destroyAllWindows();
+    */
+    /*
+    // La ventana tendrá el mismo tamaño de la imagen
+    cv::namedWindow("Image", cv::WINDOW_AUTOSIZE);
+    // Mostramos la imagen
+    cv::imshow("Image", image);
+    // Tecla para esperar el cierre de ventana
+    cv::waitKey(0);
+    */
+}
+
+#endif // IMAGE_H
