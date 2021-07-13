@@ -90,12 +90,9 @@ void Image<PixelType>::read(const std::string& _fileName){
                 data[r][c][0] = static_cast<typename PixelType::valueType>(red);
                 data[r][c][1] = static_cast<typename PixelType::valueType>(green);
                 data[r][c][2] = static_cast<typename PixelType::valueType>(blue);
-
             }
-
         }
     }
-
 }
 
 template<typename PixelType>
@@ -356,6 +353,7 @@ void Image<PixelType>::padding(int _opt){
 
     uint8_t greyImagePadding[newRows][newColumns];
 
+    std::string name = "";
 
     for(int r = 0; r < rows; r++){
         for(int c = 0; c < columns; c++){
@@ -365,6 +363,7 @@ void Image<PixelType>::padding(int _opt){
     }
 
     if(_opt == 1){
+        name = "Imagen en escala de grises - padding valor constante";
         for(int r = 0; r < newRows; r++){
             for(int c = 0; c < newColumns; c++){
                 uint8_t value = (uint8_t) 127;
@@ -381,6 +380,7 @@ void Image<PixelType>::padding(int _opt){
     }
 
     else if(_opt == 2){
+        name = "Imagen en escala de grises - padding extención de pixeles";
         for(int r = 0; r < newRows; r++){
             for(int c = 0; c < newColumns; c++){
                 uint8_t value = (uint8_t) 127;
@@ -394,7 +394,6 @@ void Image<PixelType>::padding(int _opt){
                 greyImagePadding[r + newPixels][c + newPixels] = value;
             }
         }
-
 
         for(int r = 0; r < rows; r++){
             uint8_t value = greyImage[r][0];
@@ -461,6 +460,7 @@ void Image<PixelType>::padding(int _opt){
     }
 
     else if (_opt == 3){
+        name = "Imagen en escala de grises - padding espejo";
         for(int r = 0; r < newRows; r++){
             for(int c = 0; c < newColumns; c++){
                 uint8_t value = (uint8_t) 127;
@@ -479,7 +479,7 @@ void Image<PixelType>::padding(int _opt){
 
         uint8_t left[rows][newPixels];
 
-        std::cout << rows << "\t" << newPixels << std::endl;
+    //    std::cout << rows << "\t" << newPixels << std::endl;
 
         for(int r = 0; r < rows; r++){
             for(int c = 0; c < newPixels; c++){
@@ -490,7 +490,7 @@ void Image<PixelType>::padding(int _opt){
        // greyImagePadding[0+newPixels/2][0] = 255;
         for(int r = 0; r < rows; r++){
             for(int c = 0; c < newPixels ; c++){
-                greyImagePadding[r + newPixels][c] = left[r][newPixels - c];
+                greyImagePadding[r + newPixels][c] = left[r][newPixels - 1 - c];
 //                greyImagePadding[r + newPixels][c] = left[r][c];
 
             }
@@ -501,33 +501,43 @@ void Image<PixelType>::padding(int _opt){
         for(int r = 0; r < rows; r++){
 //            for(int c = columns - newPixels; c < columns; c++){
             for(int c = 0; c < newPixels; c++){
-                right[r][c] = greyImage[r][c + columns - newPixels];
+                right[r][c] = greyImage[r][columns - 1 - c];
             }
         }
 
         for(int r = 0; r < rows; r++){
-            for (int c = 0; c < newPixels; c++){
-                greyImagePadding[r + newPixels][c + columns + newPixels] = right[r][newPixels - c];
+            for(int c = 0; c < newPixels; c++){
+                greyImagePadding[r + newPixels][c + columns + newPixels] = right[r][c];
+            //for (int c = 0; c < newPixels; c++){
+            //    greyImagePadding[r + newPixels][c + columns + newPixels] = right[r][newPixels - c];
 //                greyImagePadding[r + newPixels][c + columns + newPixels] = right[r][c];
 
             }
         }
 
 
+        /*
+        for(int r = 0; r < rows; r++){
+            uint8_t value = greyImage[r][0];
+            for(int c = c + newPixels; c > -1; c--){
+                greyImagePadding[r + newPixels ][c] = value;
+            }
+        }
+        */
         uint8_t up[newPixels][columns];
         uint8_t down[newPixels][columns];
 
         for(int r = 0; r < newPixels; r++){
             for(int c = 0; c < columns; c++){
                 up[r][c]    = greyImage[r][c];
-                down[r][c]  = greyImage[r + rows - newPixels][c];
+                down[r][c]  = greyImage[rows - 1 - r][c];
             }
         }
 
         for(int r = 0; r < newPixels; r++){
             for(int c = 0; c < columns; c++){
-                greyImagePadding[r][c + newPixels] = up[newPixels - r][c];
-                greyImagePadding[r + rows + newPixels][c + newPixels] = down[newPixels - r][c];
+                greyImagePadding[r][c + newPixels] = up[newPixels - 1 - r][c];
+                greyImagePadding[r + rows + newPixels][c + newPixels] = down[r][c];
             }
         }
 
@@ -540,43 +550,102 @@ void Image<PixelType>::padding(int _opt){
         for(int r = 0; r < newPixels; r++){
             for(int c = 0; c < newPixels; c++){
                 d01[r][c] = greyImage[r][c];
-                d02[r][c] = greyImage[r][c + columns - newPixels];
-                d03[r][c] = greyImage[r + rows - newPixels][c];
-                d04[r][c] = greyImage[r + rows - newPixels][c + columns - newPixels];
+                d02[r][c] = greyImage[r][columns - 1 - c];
+                d03[r][c] = greyImage[rows - 1 - r][c];
+                d04[r][c] = greyImage[rows - 1 - r][columns - 1 - c];
             }
         }
 
         for(int r = 0; r < newPixels; r++){
             for(int c = 0; c < newPixels; c++){
-                greyImagePadding[r][c] = d01[r][c];
-                greyImagePadding[r + rows + newPixels][c] = d03[r][c];
-                greyImagePadding[r][c + columns + newPixels] = d02[r][c];
+                greyImagePadding[r][c] = d01[newPixels - 1 - r][newPixels - 1 - c];
+                greyImagePadding[r][c + columns + newPixels] = d02[newPixels - 1 - r][c];
+                greyImagePadding[r + rows + newPixels][c] = d03[r][newPixels - 1 - c];
                 greyImagePadding[r + rows + newPixels][c + columns + newPixels] = d04[r][c];
 
             }
         }
 
+    }
 
+    else if (_opt == 4){
+        name = "Imagen en escala de grises - padding repetición";
+        for(int r = 0; r < newRows; r++){
+            for(int c = 0; c < newColumns; c++){
+                uint8_t value = (uint8_t) 127;
+                greyImagePadding[r][c] = value;
+            }
+        }
 
-
-
-
-
-
-
-        /*
         for(int r = 0; r < rows; r++){
             for(int c = 0; c < columns; c++){
                 uint8_t value = greyImage[r][c];
                 greyImagePadding[r + newPixels][c + newPixels] = value;
             }
         }
-        */
+
+        uint8_t left[rows][newPixels];
+        uint8_t right[rows][newPixels];
+
+        for(int r = 0; r < rows; r++){
+            for(int c = 0; c < newPixels; c++){
+                left[r][c] = greyImage[r][c];
+                right[r][c] = greyImage[r][columns - 1 - c];
+            }
+        }
+
+        uint8_t up[newPixels][columns];
+        uint8_t down[newPixels][columns];
+
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < columns; c++){
+                up[r][c]    = greyImage[r][c];
+                down[r][c]  = greyImage[rows - 1 - r][c];
+            }
+        }
+
+        for(int r = 0; r < rows; r++){
+            for(int c = 0; c < newPixels ; c++){
+                greyImagePadding[r + newPixels][c] = right[r][newPixels - 1 - c];
+                greyImagePadding[r + newPixels][c + columns + newPixels] = left[r][c];
+            }
+        }
+
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < columns; c++){
+                greyImagePadding[r][c + newPixels] = down[newPixels - 1 - r][c];
+                greyImagePadding[r + rows + newPixels][c + newPixels] = up[r][c];
+            }
+        }
+
+        uint8_t d01[newPixels][newPixels];
+        uint8_t d02[newPixels][newPixels];
+        uint8_t d03[newPixels][newPixels];
+        uint8_t d04[newPixels][newPixels];
+
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < newPixels; c++){
+                d01[r][c] = greyImage[r][c];
+                d02[r][c] = greyImage[r][columns - 1 - c];
+                d03[r][c] = greyImage[rows - 1 - r][c];
+                d04[r][c] = greyImage[rows - 1 - r][columns - 1 - c];
+            }
+        }
+
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < newPixels; c++){
+                greyImagePadding[r][c] = d04[newPixels - 1 - r][newPixels - 1 - c];
+                greyImagePadding[r][c + columns + newPixels] = d03[newPixels - 1 - r][c];
+                greyImagePadding[r + rows + newPixels][c] = d02[r][newPixels - 1 - c];
+                greyImagePadding[r + rows + newPixels][c + columns + newPixels] = d01[r][c];
+
+            }
+        }
 
     }
 
     cv::Mat greyImg = cv::Mat(newRows, newColumns, CV_8U, &greyImagePadding);
-    std::string greyArrWindow = "Imagen en escala de grises ecualizado";
+    std::string greyArrWindow = name;
     cv::namedWindow(greyArrWindow, cv::WINDOW_AUTOSIZE);
     cv::imshow(greyArrWindow, greyImg);
     cv::waitKey(0);
