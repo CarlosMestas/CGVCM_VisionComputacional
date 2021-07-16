@@ -24,9 +24,11 @@ public:
     void cumulativeHistogram();
     void equalizeImageHistogram();
     void padding(int _opt);
-    void convolution(int **_kernel, int _scale);
+    void convolution(int **_kernel, int _scale, int _size, int _opt);
+
 
 private:
+    cv::Mat image;
     // Matriz de pixeles
     DataType data;
     // Filas
@@ -38,13 +40,17 @@ private:
 
     std::string fileName;
 
+    cv::Mat convolutionInternal(cv::Mat _image, int **_kernel, int _scale, int _size, int _opt);
+    cv::Mat convolutionData(DataType _data, int ** _kernel_, int _scale, int _size);
+    int convolutionOperation(int ** _subMat, int ** _kernel, int _scale, int _size);
+
 };
 
 template<typename PixelType>
 void Image<PixelType>::read(const std::string& _fileName){
     fileName = _fileName;
     // Lectura de imagen
-    cv::Mat image = cv::imread(_fileName, cv::IMREAD_COLOR);
+    image = cv::imread(_fileName, cv::IMREAD_COLOR);
     /*
     // Lectura de imagen en escala de grises
     cv::Mat image = cv::imread(_fileName, cv::IMREAD_GRAYSCALE);
@@ -653,164 +659,255 @@ void Image<PixelType>::padding(int _opt){
 
 }
 
-/*
 
 template<typename PixelType>
-void Image<PixelType>::padding(int _opt){
+int Image<PixelType>::convolutionOperation(int ** _subMat, int ** _kernel, int _scale, int _size){
 
-    uint8_t greyImage[rows][columns];
-    int sizeKernel = 101;
-    int newPixels = sizeKernel / 2;
+    return 0;
+}
 
-    int newRows = rows + newPixels;
-    int newColumns = columns + newPixels;
+template<typename PixelType>
+cv::Mat Image<PixelType>::convolutionData(DataType _data, int ** _kernel, int _scale, int _size){
+    cv::Mat newImage = image.clone();
+    DataType dataCon = DataType((rows), std::vector<PixelType>((columns), PixelType{}));
 
-    uint8_t greyImagePadding[newRows][newColumns];
+    int valueExtremeRight = _size / 2;
+    int valueExtremeLeft = (-1) * valueExtremeRight;
+
+    for(unsigned r = 0; r < rows; ++r){
+
+        cv::Vec3b * row = newImage.ptr<cv::Vec3b>(r);
+        for(unsigned c = 0; c < columns; ++c){
+
+            int finalValueR = 0;
+            int finalValueG = 0;
+            int finalValueB = 0;
 
 
-    for(int r = 0; r < rows; r++){
-        for(int c = 0; c < columns; c++){
-            uint8_t value = (uint8_t)(((static_cast<int>(data[r][c][0])) + (static_cast<int>(data[r][c][1])) + (static_cast<int>(data[r][c][2])))/3);
-            greyImage[r][c] = value;
+            for(unsigned i = 0; i < _size; ++i){
+                for(unsigned j = 0; j < _size; ++j){
+                    finalValueR += (_kernel[i][j] * (int)_data[r + i][c + j][0]);
+                    finalValueG += (_kernel[i][j] * (int)_data[r + i][c + j][1]);
+                    finalValueB += (_kernel[i][j] * (int)_data[r + i][c + j][2]);
+                }
+            }
+            finalValueR = finalValueR / _scale;
+            finalValueG = finalValueG / _scale;
+            finalValueB = finalValueB / _scale;
+
+            if(finalValueR > 255)
+                finalValueR = 255;
+            if(finalValueR < 0)
+                finalValueR = 0;
+            if(finalValueG > 255)
+                finalValueG = 255;
+            if(finalValueG < 0)
+                finalValueG = 0;
+            if(finalValueB > 255)
+                finalValueB = 255;
+            if(finalValueB < 0)
+                finalValueB = 0;
+
+            row[c][2] = finalValueR;
+            row[c][1] = finalValueG;
+            row[c][0] = finalValueB;
         }
     }
 
+
+
+    return newImage;
+}
+
+
+template<typename PixelType>
+cv::Mat Image<PixelType>::convolutionInternal(cv::Mat _image, int **_kernel, int _scale, int _size, int _opt){
+    cv::Mat imageClone = _image.clone();
+    cv::Mat imageConvu;
+    int newPixels = _size / 2;
+    int newRows = newPixels * 2;
+    int newColumns = newPixels * 2;
+    DataType datacopy = DataType((rows + newRows), std::vector<PixelType>((columns + newColumns), PixelType{}));
+
+    // Padding espejo
     if(_opt == 1){
-        for(int r = 0; r < newRows; r++){
-            for(int c = 0; c < newColumns; c++){
+        for(int r = 0; r < rows + newRows; r++){
+            for(int c = 0; c < columns + newColumns; c++){
                 uint8_t value = (uint8_t) 127;
-                greyImagePadding[r][c] = value;
-            }
-        }
-        for(int r = 0; r < rows; r++){
-            for(int c = 0; c < columns; c++){
-                uint8_t value = greyImage[r][c];
-                greyImagePadding[r + newPixels / 2][c + newPixels / 2] = value;
-            }
-        }
-
-    }
-
-    else if(_opt == 2){
-        for(int r = 0; r < newRows; r++){
-            for(int c = 0; c < newColumns; c++){
-                uint8_t value = (uint8_t) 127;
-                greyImagePadding[r][c] = value;
+                datacopy[r][c][0] = (u_int8_t)value; // r
+                datacopy[r][c][1] = value; // g
+                datacopy[r][c][2] = value; // b
             }
         }
 
         for(int r = 0; r < rows; r++){
             for(int c = 0; c < columns; c++){
-                uint8_t value = greyImage[r][c];
-                greyImagePadding[r + newPixels / 2][c + newPixels / 2] = value;
+                uint8_t valueR = data[r][c][0];
+                uint8_t valueG = data[r][c][1];
+                uint8_t valueB = data[r][c][2];
+                datacopy[r + newPixels][c + newPixels][0] = valueR;
+                datacopy[r + newPixels][c + newPixels][1] = valueG;
+                datacopy[r + newPixels][c + newPixels][2] = valueB;
+
             }
         }
 
-        for(int r = 0; r < rows; r++){
-            uint8_t value = greyImage[r][0];
-            for(int c = c + newPixels / 2; c > -1; c--){
-                greyImagePadding[r + newPixels / 2][c] = value;
-            }
-        }
-
-
-        for(int r = 0; r < rows; r++){
-            uint8_t value = greyImage[r][columns - 1];
-            for(int c = columns + newPixels / 2; c < columns + newPixels; c++){
-                greyImagePadding[r + newPixels / 2][c] = value;
-            }
-        }
-        /////////////////////////////////
-        for(int c = 0; c < columns; c++){
-            uint8_t value = greyImage[0][c];
-            for(int r = r + newPixels / 2 ; r > -1; r--){
-                greyImagePadding[r][c + newPixels / 2] = value;
-            }
-        }
-
-
-        for(int r = 0; r < rows; r++){
-            for(int c = 0; c < columns; c++){
-                uint8_t value = greyImage[r][c];
-                greyImagePadding[r + newPixels / 2][c + newPixels / 2] = value;
-            }
-        }
-
-        for(int c = 0; c < columns; c++){
-            uint8_t value = greyImage[rows - 1][c];
-            for(int r = rows + newPixels / 2 ; r < rows + newPixels; r++){
-                greyImagePadding[r][c + newPixels / 2] = value;
-            }
-        }
-
-
-        /*
-        for(int c = 0; c < columns; c++){
-            uint8_t value = greyImage[rows - 1][c];
-            for(int r = rows + newPixels / 2 ; r < rows + newPixels; r++){
-                greyImagePadding[r][c + newPixels / 2] = value;
-            }
-        }
-
-
-
-
-
-        for(int r = 0; r < rows; r++){
-            for(int c = 0; c < columns; c++){
-                uint8_t value = greyImage[r][c];
-                greyImagePadding[r + newPixels / 2][c + newPixels / 2] = value;
-            }
-        }
-    }
-
-    else if (_opt == 3){
-        for(int r = 0; r < newRows; r++){
-            for(int c = 0; c < newColumns; c++){
-                uint8_t value = (uint8_t) 127;
-                greyImagePadding[r][c] = value;
-            }
-        }
-
-        for(int r = 0; r < rows; r++){
-            for(int c = 0; c < columns; c++){
-                uint8_t value = greyImage[r][c];
-                greyImagePadding[r + newPixels / 2][c + newPixels / 2] = value;
-            }
-        }
-
-        uint8_t left[rows][newPixels/2];
-
-        std::cout << rows << "\t" << newPixels << std::endl;
+        DataType dataLeft = DataType((rows), std::vector<PixelType>((newPixels), PixelType{}));
 
         for(int r = 0; r < rows; r++){
             for(int c = 0; c < newPixels; c++){
-                left[r][c] = greyImage[r][c];
+                dataLeft[r][c][0] = data[r][c][0];
+                dataLeft[r][c][1] = data[r][c][1];
+                dataLeft[r][c][2] = data[r][c][2];
             }
         }
 
-       // greyImagePadding[0+newPixels/2][0] = 255;
+
+        DataType dataRight = DataType((rows), std::vector<PixelType>((newPixels), PixelType{}));
 
         for(int r = 0; r < rows; r++){
-            for(int c = 0; c < newPixels /2 ; c++){
-                greyImagePadding[r + newPixels/2][c] = left[r][c];
+            for(int c = 0; c < newPixels; c++){
+                dataRight[r][c][0] = data[r][columns - 1 - c][0];
+                dataRight[r][c][1] = data[r][columns - 1 - c][1];
+                dataRight[r][c][2] = data[r][columns - 1 - c][2];
             }
         }
 
+        DataType dataUp = DataType((newPixels), std::vector<PixelType>((columns), PixelType{}));
+        DataType dataDown = DataType((newPixels), std::vector<PixelType>((columns), PixelType{}));
+
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < columns; c++){
+                dataUp[r][c][0]    = data[r][c][0];
+                dataUp[r][c][1]    = data[r][c][1];
+                dataUp[r][c][2]    = data[r][c][2];
+
+                dataDown[r][c][0]  = data[rows - 1 - r][c][0];
+                dataDown[r][c][1]  = data[rows - 1 - r][c][1];
+                dataDown[r][c][2]  = data[rows - 1 - r][c][2];
+            }
+        }
+
+        DataType dataD01 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
+        DataType dataD02 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
+        DataType dataD03 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
+        DataType dataD04 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
 
 
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < newPixels; c++){
+                dataD01[r][c][0] = data[r][c][0];
+                dataD01[r][c][1] = data[r][c][1];
+                dataD01[r][c][2] = data[r][c][2];
 
+                dataD02[r][c][0] = data[r][columns - 1 - c][0];
+                dataD02[r][c][1] = data[r][columns - 1 - c][1];
+                dataD02[r][c][2] = data[r][columns - 1 - c][2];
+
+                dataD03[r][c][0] = data[rows - 1 - r][c][0];
+                dataD03[r][c][1] = data[rows - 1 - r][c][1];
+                dataD03[r][c][2] = data[rows - 1 - r][c][2];
+
+                dataD04[r][c][0] = data[rows - 1 - r][columns - 1 - c][0];
+                dataD04[r][c][1] = data[rows - 1 - r][columns - 1 - c][1];
+                dataD04[r][c][2] = data[rows - 1 - r][columns - 1 - c][2];
+            }
+        }
+
+        for(int r = 0; r < rows; r++){
+            for(int c = 0; c < newPixels; c++){
+                datacopy[r + newPixels][c][0] = dataLeft[r][newPixels - 1 - c][0];
+                datacopy[r + newPixels][c][1] = dataLeft[r][newPixels - 1 - c][1];
+                datacopy[r + newPixels][c][2] = dataLeft[r][newPixels - 1 - c][2];
+            }
+        }
+
+        for(int r = 0; r < rows; r++){
+            for(int c = 0; c < newPixels; c++){
+                datacopy[r + newPixels][c + columns + newPixels][0] = dataRight[r][c][0];
+                datacopy[r + newPixels][c + columns + newPixels][1] = dataRight[r][c][1];
+                datacopy[r + newPixels][c + columns + newPixels][2] = dataRight[r][c][2];
+            }
+        }
+
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < columns; c++){
+                datacopy[r][c + newPixels][0] = dataUp[newPixels - 1 - r][c][0];
+                datacopy[r][c + newPixels][1] = dataUp[newPixels - 1 - r][c][1];
+                datacopy[r][c + newPixels][2] = dataUp[newPixels - 1 - r][c][2];
+
+                datacopy[r + rows + newPixels][c + newPixels][0] = dataDown[r][c][0];
+                datacopy[r + rows + newPixels][c + newPixels][1] = dataDown[r][c][1];
+                datacopy[r + rows + newPixels][c + newPixels][2] = dataDown[r][c][2];
+            }
+        }
+
+        for(int r = 0; r < newPixels; r++){
+            for(int c = 0; c < newPixels; c++){
+                datacopy[r][c][0] = dataD01[newPixels - 1 - r][newPixels - 1 - c][0];
+                datacopy[r][c][1] = dataD01[newPixels - 1 - r][newPixels - 1 - c][1];
+                datacopy[r][c][2] = dataD01[newPixels - 1 - r][newPixels - 1 - c][2];
+
+                datacopy[r][c + columns + newPixels][0] = dataD02[newPixels - 1 - r][c][0];
+                datacopy[r][c + columns + newPixels][1] = dataD02[newPixels - 1 - r][c][1];
+                datacopy[r][c + columns + newPixels][2] = dataD02[newPixels - 1 - r][c][2];
+
+                datacopy[r + rows + newPixels][c][0] = dataD03[r][newPixels - 1 - c][0];
+                datacopy[r + rows + newPixels][c][1] = dataD03[r][newPixels - 1 - c][1];
+                datacopy[r + rows + newPixels][c][2] = dataD03[r][newPixels - 1 - c][2];
+
+                datacopy[r + rows + newPixels][c + columns + newPixels][0] = dataD04[r][c][0];
+                datacopy[r + rows + newPixels][c + columns + newPixels][1] = dataD04[r][c][1];
+                datacopy[r + rows + newPixels][c + columns + newPixels][2] = dataD04[r][c][2];
+            }
+        }
+
+        imageConvu = convolutionData(datacopy, _kernel, _scale, _size);
 
     }
 
 
-    cv::Mat greyImg = cv::Mat(newRows, newColumns, CV_8U, &greyImagePadding);
-    std::string greyArrWindow = "Imagen en escala de grises ecualizado";
-    cv::namedWindow(greyArrWindow, cv::WINDOW_AUTOSIZE);
-    cv::imshow(greyArrWindow, greyImg);
-    cv::waitKey(0);
-    cv::destroyAllWindows();
+    /*
+    std::cout<<+data[0][0][0]<<","<<+data[0][0][1]<<","<<+data[0][0][2]<<"\n";
+    std::cout<<+datacopy[0][0][0]<<","<<+datacopy[0][0][1]<<","<<+datacopy[0][0][2]<<"\n";
+    */
+
+
+    /*
+    for(unsigned r = 0; r < rows; ++r){
+
+        cv::Vec3b * row = imageClone.ptr<cv::Vec3b>(r);
+        for(unsigned c = 0; c < columns; ++c){
+            row[c][2] = +datacopy[r + newPixels][c + newPixels][0];
+            row[c][1] = +datacopy[r + newPixels][c + newPixels][1];
+            row[c][0] = +datacopy[r + newPixels][c + newPixels][2];
+        }
+    }
+    */
+    return imageConvu;
+
+
 
 }
-*/
+
+
+template<typename PixelType>
+void Image<PixelType>::convolution(int **_kernel, int _scale, int _size, int _opt){
+    for(int i = 0; i < _size; ++i){
+        for(int j = 0; j < _size; ++j){
+            std::cout << _kernel[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    cv::Mat finalImage = convolutionInternal(image, _kernel, _scale, _size, _opt);
+
+    cv::namedWindow("Imagen a colores", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Imagen a colores", finalImage);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+}
+
+
+
 #endif // IMAGE_H
