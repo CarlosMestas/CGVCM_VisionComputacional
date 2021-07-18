@@ -23,6 +23,9 @@ int main(){
         std::cout << "5.  Mostrar imagen ecualizada con histograma " << std::endl;
         std::cout << "6.  Mostrar imagen con paddings " << std::endl;
         std::cout << "7.  Mostrar imagen operación de convolución " << std::endl;
+        std::cout << "8.  Mediana " << std::endl;
+        std::cout << "9.  Sobel " << std::endl;
+        std::cout << "10.  Prewitt " << std::endl;
         std::cout << "99. SALIR" << std::endl;
         int opt;
         std::cout << "Seleccione opción: ";
@@ -137,7 +140,16 @@ int main(){
             image.convolution(kernel, scale, size, opt4);
 
         }
+         else if(opt == 8){
+          int tam = 1;
+          image.mediana(tam,3);
 
+        }
+         //  image.histogram();
+        else if(opt == 9)
+            image.sobel();
+        else if(opt == 10)
+            image.prewitt();
         else{
             break;
         }
