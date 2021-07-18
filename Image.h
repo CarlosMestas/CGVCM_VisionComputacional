@@ -25,12 +25,16 @@ public:
     void equalizeImageHistogram();
     void padding(int _opt);
     void convolution(int **_kernel, int _scale, int _size, int _opt);
+    void mediana( int _scale, int _size);
+    void sobel();
+    void prewitt();
 
 
 private:
     cv::Mat image;
     // Matriz de pixeles
     DataType data;
+    DataType dataMediana;
     // Filas
     std::size_t rows{};
     // Columnas
@@ -40,9 +44,10 @@ private:
 
     std::string fileName;
 
-    cv::Mat convolutionInternal(cv::Mat _image, int **_kernel, int _scale, int _size, int _opt);
-    cv::Mat convolutionData(DataType _data, int ** _kernel_, int _scale, int _size);
+    cv::Mat convolutionInternal(DataType& matriz,cv::Mat _image, int **_kernel, int _scale, int _size, int _opt);
+    cv::Mat convolutionData(DataType& _data, int ** _kernel_, int _scale, int _size);
     int convolutionOperation(int ** _subMat, int ** _kernel, int _scale, int _size);
+    cv::Mat paddingEspejo(cv::Mat _image, int _size);
 
 };
 
@@ -721,13 +726,13 @@ cv::Mat Image<PixelType>::convolutionData(DataType _data, int ** _kernel, int _s
 
 
 template<typename PixelType>
-cv::Mat Image<PixelType>::convolutionInternal(cv::Mat _image, int **_kernel, int _scale, int _size, int _opt){
+cv::Mat Image<PixelType>::convolutionInternal(DataType& datacopy, cv::Mat _image, int **_kernel, int _scale, int _size, int _opt){
     cv::Mat imageClone = _image.clone();
     cv::Mat imageConvu;
     int newPixels = _size / 2;
     int newRows = newPixels * 2;
     int newColumns = newPixels * 2;
-    DataType datacopy = DataType((rows + newRows), std::vector<PixelType>((columns + newColumns), PixelType{}));
+    datacopy = DataType((rows + newRows), std::vector<PixelType>((columns + newColumns), PixelType{}));
 
     // Padding espejo
     if(_opt == 1){
@@ -899,13 +904,447 @@ void Image<PixelType>::convolution(int **_kernel, int _scale, int _size, int _op
         }
         std::cout << std::endl;
     }
-
-    cv::Mat finalImage = convolutionInternal(image, _kernel, _scale, _size, _opt);
+    DataType datacopy;
+    cv::Mat finalImage = convolutionInternal(datacopy, image, _kernel, _scale, _size, _opt);
 
     cv::namedWindow("Imagen a colores", cv::WINDOW_AUTOSIZE);
     cv::imshow("Imagen a colores", finalImage);
     cv::waitKey(0);
     cv::destroyAllWindows();
+}
+
+
+template<typename PixelType>
+cv::Mat Image<PixelType>::paddingEspejo(cv::Mat _image, int _size){
+  int newPixels = _size / 2;
+  int newRows = newPixels * 2;
+  int newColumns = newPixels * 2;
+  dataMediana = DataType((rows + newRows), std::vector<PixelType>((columns + newColumns), PixelType{}));
+
+  std::cout << "Salio Datos" << std::endl;
+
+  for(int r = 0; r < rows + newRows; r++){
+      for(int c = 0; c < columns + newColumns; c++){
+          uint8_t value = (uint8_t) 0;
+          dataMediana[r][c][0] = value; // r
+          dataMediana[r][c][1] = value; // g
+          dataMediana[r][c][2] = value; // b
+
+        }
+    }
+  std::cout << "salio primer for" << std::endl;
+
+  for(int r = 0; r < rows; r++){
+      for(int c = 0; c < columns; c++){
+          uint8_t valueR = data[r][c][0];
+          uint8_t valueG = data[r][c][1];
+          uint8_t valueB = data[r][c][2];
+          dataMediana[r + newPixels][c + newPixels][0] = valueR;
+          dataMediana[r + newPixels][c + newPixels][1] = valueG;
+          dataMediana[r + newPixels][c + newPixels][2] = valueB;
+
+        }
+    }
+
+  DataType dataLeft = DataType((rows), std::vector<PixelType>((newPixels), PixelType{}));
+
+  for(int r = 0; r < rows; r++){
+      for(int c = 0; c < newPixels; c++){
+          dataLeft[r][c][0] = data[r][c][0];
+          dataLeft[r][c][1] = data[r][c][1];
+          dataLeft[r][c][2] = data[r][c][2];
+        }
+    }
+
+
+  DataType dataRight = DataType((rows), std::vector<PixelType>((newPixels), PixelType{}));
+
+  for(int r = 0; r < rows; r++){
+      for(int c = 0; c < newPixels; c++){
+          dataRight[r][c][0] = data[r][columns - 1 - c][0];
+          dataRight[r][c][1] = data[r][columns - 1 - c][1];
+          dataRight[r][c][2] = data[r][columns - 1 - c][2];
+        }
+    }
+
+  DataType dataUp = DataType((newPixels), std::vector<PixelType>((columns), PixelType{}));
+  DataType dataDown = DataType((newPixels), std::vector<PixelType>((columns), PixelType{}));
+
+  for(int r = 0; r < newPixels; r++){
+      for(int c = 0; c < columns; c++){
+          dataUp[r][c][0]    = data[r][c][0];
+          dataUp[r][c][1]    = data[r][c][1];
+          dataUp[r][c][2]    = data[r][c][2];
+
+          dataDown[r][c][0]  = data[rows - 1 - r][c][0];
+          dataDown[r][c][1]  = data[rows - 1 - r][c][1];
+          dataDown[r][c][2]  = data[rows - 1 - r][c][2];
+        }
+    }
+
+  DataType dataD01 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
+  DataType dataD02 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
+  DataType dataD03 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
+  DataType dataD04 = DataType((newPixels), std::vector<PixelType>((newPixels), PixelType{}));
+
+
+  for(int r = 0; r < newPixels; r++){
+      for(int c = 0; c < newPixels; c++){
+          dataD01[r][c][0] = data[r][c][0];
+          dataD01[r][c][1] = data[r][c][1];
+          dataD01[r][c][2] = data[r][c][2];
+
+          dataD02[r][c][0] = data[r][columns - 1 - c][0];
+          dataD02[r][c][1] = data[r][columns - 1 - c][1];
+          dataD02[r][c][2] = data[r][columns - 1 - c][2];
+
+          dataD03[r][c][0] = data[rows - 1 - r][c][0];
+          dataD03[r][c][1] = data[rows - 1 - r][c][1];
+          dataD03[r][c][2] = data[rows - 1 - r][c][2];
+
+          dataD04[r][c][0] = data[rows - 1 - r][columns - 1 - c][0];
+          dataD04[r][c][1] = data[rows - 1 - r][columns - 1 - c][1];
+          dataD04[r][c][2] = data[rows - 1 - r][columns - 1 - c][2];
+        }
+    }
+
+  for(int r = 0; r < rows; r++){
+      for(int c = 0; c < newPixels; c++){
+          dataMediana[r + newPixels][c][0] = dataLeft[r][newPixels - 1 - c][0];
+          dataMediana[r + newPixels][c][1] = dataLeft[r][newPixels - 1 - c][1];
+          dataMediana[r + newPixels][c][2] = dataLeft[r][newPixels - 1 - c][2];
+        }
+    }
+
+  for(int r = 0; r < rows; r++){
+      for(int c = 0; c < newPixels; c++){
+          dataMediana[r + newPixels][c + columns + newPixels][0] = dataRight[r][c][0];
+          dataMediana[r + newPixels][c + columns + newPixels][1] = dataRight[r][c][1];
+          dataMediana[r + newPixels][c + columns + newPixels][2] = dataRight[r][c][2];
+        }
+    }
+
+  for(int r = 0; r < newPixels; r++){
+      for(int c = 0; c < columns; c++){
+          dataMediana[r][c + newPixels][0] = dataUp[newPixels - 1 - r][c][0];
+          dataMediana[r][c + newPixels][1] = dataUp[newPixels - 1 - r][c][1];
+          dataMediana[r][c + newPixels][2] = dataUp[newPixels - 1 - r][c][2];
+
+          dataMediana[r + rows + newPixels][c + newPixels][0] = dataDown[r][c][0];
+          dataMediana[r + rows + newPixels][c + newPixels][1] = dataDown[r][c][1];
+          dataMediana[r + rows + newPixels][c + newPixels][2] = dataDown[r][c][2];
+        }
+    }
+
+  for(int r = 0; r < newPixels; r++){
+      for(int c = 0; c < newPixels; c++){
+          dataMediana[r][c][0] = dataD01[newPixels - 1 - r][newPixels - 1 - c][0];
+          dataMediana[r][c][1] = dataD01[newPixels - 1 - r][newPixels - 1 - c][1];
+          dataMediana[r][c][2] = dataD01[newPixels - 1 - r][newPixels - 1 - c][2];
+
+          dataMediana[r][c + columns + newPixels][0] = dataD02[newPixels - 1 - r][c][0];
+          dataMediana[r][c + columns + newPixels][1] = dataD02[newPixels - 1 - r][c][1];
+          dataMediana[r][c + columns + newPixels][2] = dataD02[newPixels - 1 - r][c][2];
+
+          dataMediana[r + rows + newPixels][c][0] = dataD03[r][newPixels - 1 - c][0];
+          dataMediana[r + rows + newPixels][c][1] = dataD03[r][newPixels - 1 - c][1];
+          dataMediana[r + rows + newPixels][c][2] = dataD03[r][newPixels - 1 - c][2];
+
+          dataMediana[r + rows + newPixels][c + columns + newPixels][0] = dataD04[r][c][0];
+          dataMediana[r + rows + newPixels][c + columns + newPixels][1] = dataD04[r][c][1];
+          dataMediana[r + rows + newPixels][c + columns + newPixels][2] = dataD04[r][c][2];
+        }
+    }
+
+  cv::Mat imageEspejo(rows+newRows,columns+newColumns,CV_8UC3);
+
+
+  int finalValueR = 0;
+  int finalValueG = 0;
+  int finalValueB = 0;
+
+  std::cout << rows+newRows << " - " << columns+newColumns <<std::endl;
+  for(unsigned r = 0; r < rows+newRows; r++){
+      cv::Vec3b * row = imageEspejo.ptr<cv::Vec3b>(r);
+      for(unsigned c = 0; c < columns+newColumns; c++){
+
+
+          finalValueR = (int)dataMediana[r][c][0];
+          finalValueG = (int)dataMediana[r][c][1];
+          finalValueB = (int)dataMediana[r][c][2];
+
+          row[c][0] = finalValueB;
+          row[c][1] = finalValueG;
+          row[c][2] = finalValueR;
+        }
+    }
+
+  return imageEspejo;
+}
+
+template<typename PixelType>
+void Image<PixelType>::mediana( int tam, int _size){
+  cv::Mat paddingimg = paddingEspejo(image, _size);
+  int newRows = paddingimg.rows;
+  int newCols = paddingimg.cols;
+  DataType dataMediana2 = DataType((newRows), std::vector<PixelType>(newCols, PixelType{}));
+  cv::Mat probandoMediana(newRows,newCols,CV_8UC1);
+
+  std::vector<uchar>lineaB (9,0);
+  std::vector<uchar>lineaG (9,0);
+  std::vector<uchar>lineaR (9,0);
+  int centro = 2*(tam*tam+tam);
+
+  uchar red,blue,green;
+  for (int r = 0; r < newRows; r++)
+    {
+      uchar * ptr = probandoMediana.ptr<uchar>(r);
+      for (int c = 0; c < newCols; c++)
+        {
+          red = (uchar)dataMediana[r][c][0];
+          green = (uchar)dataMediana[r][c][1];
+          blue = (uchar)dataMediana[r][c][2];
+          uchar dato = (red + green + blue)/3;
+          ptr[c] = dato;
+          dataMediana2[r][c][0] = dato;
+          dataMediana2[r][c][1] = dato;
+          dataMediana2[r][c][2] = dato;
+        }
+    }
+
+
+  for (int r = tam; r <= newRows-tam-2; r++)
+    {
+      cv::Vec3b * row = paddingimg.ptr<cv::Vec3b>(r);
+      for (int c=tam ; c <= newCols-tam-2; c++)
+        {
+          int k = 0;
+          for(int i = -tam; i <= tam; i++)
+            {
+              for (int j = -tam; j <= tam; j++)
+                {
+                  lineaB[k] = (uchar)dataMediana2[r+i][c+j][2];
+                  lineaG[k] = (uchar)dataMediana2[r+i][c+j][1];
+                  lineaR[k] = (uchar)dataMediana2[r+i][c+j][0];
+                  k++;
+                }
+            }
+          std::sort(lineaB.begin(),lineaB.end());
+          std::sort(lineaG.begin(),lineaG.end());
+          std::sort(lineaR.begin(),lineaR.end());
+          if (r< 2) {
+              std::cout << lineaB[r] << " - ";
+
+            }
+
+          row[c][0] = lineaB[centro];
+          row[c][1] = lineaG[centro];
+          row[c][2] = lineaR[centro];
+        }
+    }
+  for (int i = 0 ; i < lineaB.size() ; i++ ) {
+      std::cout << lineaB[i] << " - ";
+    }
+  std::cout << std::endl;
+  for (int i = 0 ; i < lineaB.size() ; i++ ) {
+      std::cout << lineaG[i] << " - ";
+    }
+  std::cout << std::endl;
+  for (int i = 0 ; i < lineaB.size() ; i++ ) {
+      std::cout << lineaR[i] << " - ";
+    }
+  std::cout << std::endl;
+
+  cv::namedWindow("Imagen copia", cv::WINDOW_AUTOSIZE);
+  //cv::imshow("Imagen copia", probandoMediana);
+  cv::imshow("Imagen copia", paddingimg);
+  cv::waitKey(0);
+  cv::destroyAllWindows();
+}
+
+template<typename PixelType>
+void Image<PixelType>::sobel( ){
+  int **kernelx;
+  kernelx = new int*[3];
+  for(int i = 0; i < 3; ++i){
+      kernelx[i] = new int[3];
+    }
+  kernelx[0][0] = -1;
+  kernelx[0][1] = 0;
+  kernelx[0][2] = 1;
+  kernelx[1][0] = -2;
+  kernelx[1][1] = 0;
+  kernelx[1][2] = 2;
+  kernelx[2][0] = -1;
+  kernelx[2][1] = 0;
+  kernelx[2][2] = 1;
+
+
+
+  int **kernely;
+  kernely = new int*[3];
+  for(int i = 0; i < 3; ++i){
+      kernely[i] = new int[3];
+    }
+  kernely[0][0] = -1;
+  kernely[0][1] = -2;
+  kernely[0][2] = -1;
+  kernely[1][0] = 0;
+  kernely[1][1] = 0;
+  kernely[1][2] = 0;
+  kernely[2][0] = 1;
+  kernely[2][1] = 2;
+  kernely[2][2] = 1;
+
+  DataType datax;
+  cv::Mat imageX = convolutionInternal(datax,image, kernelx,1,3,1);
+
+  DataType datay;
+  cv::Mat imageY = convolutionInternal(datay,image, kernely,1,3,1);
+
+
+  std::cout << " x " << datax.size() << " - " << datax[0].size() << std::endl;
+  std::cout << " y " << datay.size() << " - " << datay[0].size() << std::endl;
+
+  std::cout << rows << " - " << columns << std::endl;
+
+  cv::Mat imageResul(rows+2,columns+2,CV_8UC3);
+  //cv::Mat imageResul = image.clone();
+  for(unsigned r = 0; r < rows+2; r++){
+      cv::Vec3b * rowX = imageX.ptr<cv::Vec3b>(r);
+      cv::Vec3b * rowY = imageY.ptr<cv::Vec3b>(r);
+      cv::Vec3b * row = imageResul.ptr<cv::Vec3b>(r);
+      for(unsigned c = 0; c < columns+2; c++){
+
+          uchar finalValueR = (uchar)std::sqrt((rowX[c][2])*(datax[r][c][2]) + (rowY[c][2])*(rowY[c][2]))/8;
+          uchar finalValueG = (uchar)std::sqrt((rowX[c][1])*(datax[r][c][1]) + (rowY[c][1])*(rowY[c][1]))/8;
+          uchar finalValueB = (uchar)std::sqrt((rowX[c][0])*(datax[r][c][0]) + (rowY[c][0])*(rowY[c][0]))/8;
+
+         /* int finalValueR = std::abs(datax[r][c][0]) + std::abs(datay[r][c][0]);
+          int finalValueG = std::abs(datax[r][c][1]) + std::abs(datay[r][c][1]);
+          int finalValueB = std::abs(datax[r][c][2]) + std::abs(datay[r][c][2]);*/
+
+          if(finalValueR > 5)
+            finalValueR = 255;
+          if(finalValueR < 5)
+            finalValueR = 0;
+          if(finalValueG > 5)
+            finalValueG = 255;
+          if(finalValueG < 5)
+            finalValueG = 0;
+          if(finalValueB > 5)
+            finalValueB = 255;
+          if(finalValueB < 5)
+            finalValueB = 0;
+
+          row[c][0] = finalValueB;
+          row[c][1] = finalValueG;
+          row[c][2] = finalValueR;
+
+        }
+    }
+  cv::namedWindow("Imagen Original", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen Original", image);
+  cv::namedWindow("Imagen X", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen X", imageX);
+  cv::namedWindow("Imagen Y", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen Y", imageY);
+  cv::namedWindow("Imagen Y", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen Resultante", imageResul);
+  cv::waitKey(0);
+  cv::destroyAllWindows();
+}
+
+template<typename PixelType>
+void Image<PixelType>::prewitt( ){
+  int **kernelx;
+  kernelx = new int*[3];
+  for(int i = 0; i < 3; ++i){
+      kernelx[i] = new int[3];
+    }
+  kernelx[0][0] = -1;
+  kernelx[0][1] = 0;
+  kernelx[0][2] = 1;
+  kernelx[1][0] = -1;
+  kernelx[1][1] = 0;
+  kernelx[1][2] = 1;
+  kernelx[2][0] = -1;
+  kernelx[2][1] = 0;
+  kernelx[2][2] = 1;
+
+  int **kernely;
+  kernely = new int*[3];
+  for(int i = 0; i < 3; ++i){
+      kernely[i] = new int[3];
+    }
+  kernely[0][0] = -1;
+  kernely[0][1] = -1;
+  kernely[0][2] = -1;
+  kernely[1][0] = 0;
+  kernely[1][1] = 0;
+  kernely[1][2] = 0;
+  kernely[2][0] = 1;
+  kernely[2][1] = 1;
+  kernely[2][2] = 1;
+
+  DataType datax;
+  cv::Mat imageX = convolutionInternal(datax,image, kernelx,1,3,1);
+
+  DataType datay;
+  cv::Mat imageY = convolutionInternal(datay,image, kernely,1,3,1);
+
+
+  std::cout << " x " << datax.size() << " - " << datax[0].size() << std::endl;
+  std::cout << " y " << datay.size() << " - " << datay[0].size() << std::endl;
+
+  std::cout << rows << " - " << columns << std::endl;
+
+  cv::Mat imageResul(rows+2,columns+2,CV_8UC3);
+  //cv::Mat imageResul = image.clone();
+  for(unsigned r = 0; r < rows+2; r++){
+      cv::Vec3b * rowX = imageX.ptr<cv::Vec3b>(r);
+      cv::Vec3b * rowY = imageY.ptr<cv::Vec3b>(r);
+      cv::Vec3b * row = imageResul.ptr<cv::Vec3b>(r);
+      for(unsigned c = 0; c < columns+2; c++){
+
+          uchar finalValueR = (uchar)std::sqrt((rowX[c][2])*(datax[r][c][2]) + (rowY[c][2])*(rowY[c][2]))/6;
+          uchar finalValueG = (uchar)std::sqrt((rowX[c][1])*(datax[r][c][1]) + (rowY[c][1])*(rowY[c][1]))/6;
+          uchar finalValueB = (uchar)std::sqrt((rowX[c][0])*(datax[r][c][0]) + (rowY[c][0])*(rowY[c][0]))/6;
+
+         /* int finalValueR = std::abs(datax[r][c][0]) + std::abs(datay[r][c][0]);
+          int finalValueG = std::abs(datax[r][c][1]) + std::abs(datay[r][c][1]);
+          int finalValueB = std::abs(datax[r][c][2]) + std::abs(datay[r][c][2]);*/
+
+          if(finalValueR > 5)
+            finalValueR = 255;
+          if(finalValueR < 5)
+            finalValueR = 0;
+          if(finalValueG > 5)
+            finalValueG = 255;
+          if(finalValueG < 5)
+            finalValueG = 0;
+          if(finalValueB > 5)
+            finalValueB = 255;
+          if(finalValueB < 5)
+            finalValueB = 0;
+
+          row[c][0] = finalValueB;
+          row[c][1] = finalValueG;
+          row[c][2] = finalValueR;
+
+        }
+    }
+
+  cv::namedWindow("Imagen Original", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen Original", image);
+  cv::namedWindow("Imagen X", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen X", imageX);
+  cv::namedWindow("Imagen Y", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen Y", imageY);
+  cv::namedWindow("Imagen Y", cv::WINDOW_AUTOSIZE);
+  cv::imshow("Imagen Resultante", imageResul);
+  cv::waitKey(0);
+  cv::destroyAllWindows();
 }
 
 
