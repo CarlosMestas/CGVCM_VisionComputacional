@@ -1087,6 +1087,7 @@ void Image<PixelType>::mediana( int tam, int _size){
   cv::Mat paddingimg = paddingEspejo(image, _size);
   int newRows = paddingimg.rows;
   int newCols = paddingimg.cols;
+  cv::Mat resultado = image.clone();
   DataType dataMediana2 = DataType((newRows), std::vector<PixelType>(newCols, PixelType{}));
   cv::Mat probandoMediana(newRows,newCols,CV_8UC1);
 
@@ -1115,7 +1116,7 @@ void Image<PixelType>::mediana( int tam, int _size){
 
   for (int r = tam; r <= newRows-tam-2; r++)
     {
-      cv::Vec3b * row = paddingimg.ptr<cv::Vec3b>(r);
+      cv::Vec3b * row = resultado.ptr<cv::Vec3b>(r);
       for (int c=tam ; c <= newCols-tam-2; c++)
         {
           int k = 0;
@@ -1157,7 +1158,7 @@ void Image<PixelType>::mediana( int tam, int _size){
 
   cv::namedWindow("Imagen copia", cv::WINDOW_AUTOSIZE);
   //cv::imshow("Imagen copia", probandoMediana);
-  cv::imshow("Imagen copia", paddingimg);
+  cv::imshow("Imagen copia", resultado);
   cv::waitKey(0);
   cv::destroyAllWindows();
 }
