@@ -186,12 +186,16 @@ int main(int argc, char **argv){
          else if(opt == 8){
           int tam = 1;
           image.mediana(tam,3);
-
         }
+       
+         else if(opt == 9){
+            int tam = 1;
+            image.medianaponderada(tam,3);}
+       
          //  image.histogram();
-        else if(opt == 9)
-            image.sobel();
         else if(opt == 10)
+            image.sobel();
+        else if(opt == 11)
             image.prewitt();
         else{
             break;
