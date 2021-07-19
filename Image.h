@@ -26,6 +26,7 @@ public:
     void padding(int _opt);
     void convolution(int **_kernel, int _scale, int _size, int _opt);
     void mediana( int _scale, int _size);
+    void medianaponderada( int tam, int _size);
     void sobel();
     void prewitt();
 
@@ -1162,6 +1163,107 @@ void Image<PixelType>::mediana( int tam, int _size){
   cv::waitKey(0);
   cv::destroyAllWindows();
 }
+
+
+
+template<typename PixelType>
+void Image<PixelType>::medianaponderada( int tam, int _size){
+
+  std::vector<std::vector<int>> ponderada (3,std::vector<int>(3));
+  ponderada[0][0] = 1;
+  ponderada[0][1] = 2;
+  ponderada[0][2] = 1;
+  ponderada[1][0] = 2;
+  ponderada[1][1] = 3;
+  ponderada[1][2] = 2;
+  ponderada[2][0] = 1;
+  ponderada[2][1] = 2;
+  ponderada[2][2] = 1;
+
+  int tamFinal = 0;
+  for(int i = 0; i < ponderada.size(); i++){
+      for(int j = 0; j < ponderada[0].size(); j++)
+        tamFinal += ponderada[i][j];
+
+    }
+  std::cout << tamFinal << std::endl;
+
+  cv::Mat paddingimg = paddingEspejo(image, _size);
+  int newRows = paddingimg.rows;
+  int newCols = paddingimg.cols;
+  cv::Mat resultado = image.clone();
+  DataType dataMediana2 = DataType((newRows), std::vector<PixelType>(newCols, PixelType{}));
+  cv::Mat probandoMediana(newRows,newCols,CV_8UC1);
+
+  std::vector<uint8_t>lineaFinal(tamFinal,0);
+
+  int centro = (tamFinal-1)/2;
+
+  uint8_t red,blue,green;
+  for (int r = 0; r < newRows; r++)
+    {
+      uint8_t * ptr = probandoMediana.ptr<uint8_t>(r);
+      for (int c = 0; c < newCols; c++)
+        {
+          red = (uint8_t)dataMediana[r][c][0];
+          green = (uint8_t)dataMediana[r][c][1];
+          blue = (uint8_t)dataMediana[r][c][2];
+          uint8_t dato = (red + green + blue)/3;
+          ptr[c] = dato;
+          dataMediana2[r][c][0] = dato;
+          dataMediana2[r][c][1] = dato;
+          dataMediana2[r][c][2] = dato;
+        }
+    }
+
+  std::cout << "data media "<< (int)dataMediana[1][1][0]<< std::endl;
+
+  for (int r = tam; r <= newRows-tam-2; r++)
+    {
+      cv::Vec3b * row = resultado.ptr<cv::Vec3b>(r);
+      for (int c=tam ; c <= newCols-tam-2; c++)
+        {
+          int h = 0;
+          for(int i = -tam; i <= tam; i++)
+            {
+
+              for (int j = -tam; j <= tam; j++)
+                {
+
+                  for(int l = 0; l < ponderada[i+tam][j+tam]; l++)
+                    {
+                      lineaFinal[h] = (uint8_t)dataMediana2[r+i][c+j][0];
+                      h++;
+
+                    }
+
+                  //
+                }
+
+            }
+
+          std::sort(lineaFinal.begin(),lineaFinal.end());
+
+
+          row[c][0] = lineaFinal[centro];
+          row[c][1] = lineaFinal[centro];
+          row[c][2] = lineaFinal[centro];
+        }
+    }
+  for (int i = 0 ; i < lineaFinal.size() ; i++ ) {
+      std::cout << (int)lineaFinal[i] << " - " ;
+    }
+
+  std::cout << std::endl;
+
+  cv::namedWindow("Imagen Mediana", cv::WINDOW_AUTOSIZE);
+  //cv::imshow("Imagen copia", probandoMediana);
+  cv::imshow("Imagen Mediana", resultado);
+  cv::waitKey(0);
+  cv::destroyAllWindows();
+}
+
+
 
 template<typename PixelType>
 void Image<PixelType>::sobel( ){
