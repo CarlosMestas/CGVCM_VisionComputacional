@@ -119,8 +119,8 @@ void Image<PixelType>::print(){
 
     cv::namedWindow("Imagen a colores", cv::WINDOW_AUTOSIZE);
     cv::imshow("Imagen a colores", image);
-    cv::waitKey(0);
-
+    cv::waitKey(0);    
+    cv::destroyAllWindows();
 
 }
 
@@ -672,7 +672,7 @@ int Image<PixelType>::convolutionOperation(int ** _subMat, int ** _kernel, int _
 }
 
 template<typename PixelType>
-cv::Mat Image<PixelType>::convolutionData(DataType _data, int ** _kernel, int _scale, int _size){
+cv::Mat Image<PixelType>::convolutionData(DataType& _data, int ** _kernel, int _scale, int _size){
     cv::Mat newImage = image.clone();
     DataType dataCon = DataType((rows), std::vector<PixelType>((columns), PixelType{}));
 

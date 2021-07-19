@@ -7,13 +7,15 @@ using namespace std;
 
 // Implementar una clase pixel
 
-int main(){
+int main(int argc, char **argv){
 //    Image<uchar> image;
 //    Image<std::vector<uchar>> image;
     Image<RGB<uchar>> image;
 //    image.read("/home/cmestas/BSDS300-images/BSDS300/images/test/86016.jpg");
 //    image.read("/home/cmestas/BSDS300-images/BSDS300/images/test/241048.jpg");
-    image.read("/home/cmestas/BSDS300-images/BSDS300/images/test/229036.jpg");
+//    image.read("/home/cmestas/BSDS300-images/BSDS300/images/test/229036.jpg");
+
+    image.read(argv[1]);
 
     while(1){
         std::cout << "1.  Mostrar imagen normal" << std::endl;
@@ -25,7 +27,7 @@ int main(){
         std::cout << "7.  Mostrar imagen operación de convolución " << std::endl;
         std::cout << "8.  Mediana " << std::endl;
         std::cout << "9.  Sobel " << std::endl;
-        std::cout << "10.  Prewitt " << std::endl;
+        std::cout << "10. Prewitt " << std::endl;
         std::cout << "99. SALIR" << std::endl;
         int opt;
         std::cout << "Seleccione opción: ";
@@ -58,13 +60,13 @@ int main(){
             std::cout << "\t" << "\t" << "|0 0 1|" << std::endl;
             std::cout << "\t" << "\t" << "|0 0 0|" << std::endl;
             std::cout << "\t" << "\t" << "2. " << std::endl;
-            std::cout << "\t" << "\t" << "|0  0 3|" << std::endl;
-            std::cout << "\t" << "\t" << "|0  0 3|" << std::endl;
-            std::cout << "\t" << "\t" << "|0  0 3|" << std::endl;
+            std::cout << "\t" << "\t" << "|0 0 0|" << std::endl;
+            std::cout << "\t" << "\t" << "|0 2 0|" << std::endl;
+            std::cout << "\t" << "\t" << "|0 0 0|" << std::endl;
             std::cout << "\t" << "\t" << "3. " << std::endl;
-            std::cout << "\t" << "\t" << "|0  0 1|" << std::endl;
-            std::cout << "\t" << "\t" << "|0  1 0|" << std::endl;
-            std::cout << "\t" << "\t" << "|1  0 0|" << std::endl;
+            std::cout << "\t" << "\t" << "|0 0 1|" << std::endl;
+            std::cout << "\t" << "\t" << "|0 1 0|" << std::endl;
+            std::cout << "\t" << "\t" << "|1 0 0|" << std::endl;
             std::cout << "\t" << "\t" << "4. " << std::endl;
             std::cout << "\t" << "\t" << "|1 0 1 1 0|" << std::endl;
             std::cout << "\t" << "\t" << "|0 1 0 1 1|" << std::endl;
@@ -84,7 +86,7 @@ int main(){
             std::cout << "\t" << "\t" << "Ingrese valor de la escala: ";
             std::cin >> scale;
             std::cout << "\t" << "\t" << "1. Espejo" << std::endl;
-            std::cout << "\t" << "\t" << "2. Repetición" << std::endl;
+            //std::cout << "\t" << "\t" << "2. Repetición" << std::endl;
             int opt4;
             std::cout << "\t" << "\t" << "Seleccione opción: ";
             std::cin >> opt4;
@@ -94,7 +96,7 @@ int main(){
                 size = 3;
             }
             else{
-                size = 4;
+                size = 5;
             }
             kernel = new int*[size];
             for(int i = 0; i < size; ++i){
@@ -134,8 +136,36 @@ int main(){
                 kernel[2][1] = 0;
                 kernel[2][2] = 0;
             }
-            else{
+            else if(opt3 == 4){
+                kernel[0][0] = 1;
+                kernel[0][1] = 0;
+                kernel[0][2] = 1;
+                kernel[0][3] = 1;
+                kernel[0][4] = 0;
 
+                kernel[1][0] = 0;
+                kernel[1][1] = 1;
+                kernel[1][2] = 0;
+                kernel[1][3] = 1;
+                kernel[1][4] = 1;
+
+                kernel[2][0] = 1;
+                kernel[2][1] = 0;
+                kernel[2][2] = 1;
+                kernel[2][3] = 0;
+                kernel[2][4] = 0;
+
+                kernel[3][0] = 1;
+                kernel[3][1] = 0;
+                kernel[3][2] = 1;
+                kernel[3][3] = 0;
+                kernel[3][4] = 1;
+
+                kernel[4][0] = 1;
+                kernel[4][1] = 0;
+                kernel[4][2] = 1;
+                kernel[4][3] = 0;
+                kernel[4][4] = 1;
             }
             image.convolution(kernel, scale, size, opt4);
 
@@ -154,10 +184,5 @@ int main(){
             break;
         }
     }
-
-
-
-
-
     return 0;
 }
