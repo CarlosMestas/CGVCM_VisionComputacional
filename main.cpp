@@ -1,11 +1,24 @@
+/*!
+   Computación Gráfica, Visión Computacional y Multimedia
+   @author: Carlos Alberto Mestas Escarcena
+   @author: David Jose Peña Ugarte
+   En esta clase main.cpp se tiene el siguiente procedimiento
+   Para la ejecución se tienen que ingresar 1 argumentos
+   1. La ruta de la imagen
+
+   EJEMPLO DE EJECUCIÓN
+
+   ./executable /home/cmestas/BSDS300-images/BSDS300/images/test/229036.jpg
+
+    NOTAS:
+    El funcionamiento es con un menú, este funciona en un ciclo hasta que se solicite que termine
+*/
+
 #include <iostream>
 #include "Image.h"
 #include "RGB.h"
 
 using namespace std;
-
-
-// Implementar una clase pixel
 
 int main(int argc, char **argv){
 //    Image<uchar> image;
